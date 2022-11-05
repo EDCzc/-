@@ -1,0 +1,108 @@
+<html>
+
+<head>
+
+    <title>NB物理实验</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="renderer" content="webkit">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no" />
+    <script type="text/javascript" src='nbData/e5eadda1b1aadadf2f48ab4ed72bd528'></script>
+    <script type="text/javascript" src="js/static/js/jquery_and_jqueryui.js"></script>
+    <script type="text/javascript" src="js/static/plugins/layer-v2.2/layer.js"></script><!--layer-v2.2/layer.js-->
+    <script type="text/javascript" src='nbData/1d8bbf126aa7110d1537822d9c842b03'></script>
+</head>
+<body id="-id-appBodyID" topmargin='0' leftmargin='0'>
+<iframe id="-id-mainElecID" style="width:100%;height: 100%;margin:0px;padding:0px;overflow:hidden;border:none;frameborder:none"></iframe>
+<script>
+    $(function () {
+        // 调试显示窗口需要临时修改 package.json->show
+        window.document.oncontextmenu = rclick;
+        function rclick(event){
+            if (window.Event){
+                if (event.which == 2 || event.which == 3)
+                    return false;
+            }else if (event.button == 2 || event.button == 3){
+                event.cancelBubble = true
+                event.returnValue = false;
+                return false;
+            }
+        }
+
+        window.ondragover=function(e) {
+            e.preventDefault();
+            return false;
+        };
+        window.ondrop=function(e) {
+            e.preventDefault();
+            return false ;
+        };
+
+        var nw = require('nw.gui');
+        var File = require('wjsjs').File;
+        /*********将老数据重命名start*************/
+        try{
+            var defpath = nw.App.getDataPath();
+            var oldpath = defpath + '/IndexedDB/http_127.0.0.1_8132.indexeddb.leveldb';
+            var newpath = defpath + '/IndexedDB/old8132';
+            if(!File.exists(newpath) && File.exists(oldpath)){
+                File.rename(oldpath, newpath);
+            }
+        }catch(e){
+
+        }
+
+        /*********将老数据重命名end*************/
+
+        var win = nw.Window.get();
+        window.nw = nw;
+        nw.App.clearCache();
+        window.File = File;
+        var phyCon;
+        win.setMinimumSize(800, 600);//设置窗口的最小值
+        var option = {frame:false, focus:true, width:480, height:360, show:true};
+        nw.Window.open("startup.html", option, function(new_win){
+            if(!new_win.window || !new_win.window.setProgress) {
+                new_win.window.addEventListener('setProgress_win_complete', setProgress_win_complete);
+            } else {
+                setProgress_win_complete();
+            }
+            //
+            function setProgress_win_complete() {
+                phyCon = new app.PhyCon();
+                phyCon.setProgress = function (num) {
+                    if(new_win.window && new_win.window.setProgress){
+                        new_win.window.setProgress(num);
+                    }
+                    if(num === 100) {
+                        win.x = win.y = 0;
+                        //最大化窗口
+                        win.maximize();
+//                        phyCon.winToMax.call(phyCon, true);// 放大并显示
+                        new_win.close();
+                        win.focus();
+                        win.show();
+                    }
+                }
+                if(global.serverRun){
+                    phyCon.init.call(phyCon);
+                }else{
+                    var st = setInterval(function(){
+                        if(global.serverRun){
+                            clearInterval(st);
+                            phyCon.init.call(phyCon);
+                        }
+                    }, 100);
+                }
+            }
+        });
+        // 30秒以后启动更新检测
+        setTimeout(function () {
+            var PatchGet = require('nb-update-service').PatchGet;
+            new PatchGet(require('nw.gui'));
+        }, 30000);
+    });
+</script>
+</body>
+</html>
